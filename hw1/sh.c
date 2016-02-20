@@ -65,14 +65,24 @@ runcmd(struct cmd *cmd)
     // TODO: exec()
     if(execv(ecmd->argv[0], ecmd->argv) < 0) {
         fprintf(stderr, "exec returns error\n");
+        exit(0);
     }
     break;
 
   case '>':
   case '<':
     rcmd = (struct redircmd*)cmd;
-    fprintf(stderr, "redir not implemented\n");
+    // fprintf(stderr, "redir not implemented\n");
     // Your code here ...
+    // TODO: redirection
+    if(close(rcmd->fd) < 0) {
+        fprintf(stderr, "fails to close stdio\n");
+        exit(0);
+    }
+    if(open(rcmd->file, rcmd->mode, S_IRWXU) < 0) {
+        fprintf(stderr, "fails to redirect stdio\n");
+        exit(0);
+    }
     runcmd(rcmd->cmd);
     break;
 
