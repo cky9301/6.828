@@ -64,8 +64,15 @@ runcmd(struct cmd *cmd)
     // Your code here ...
     // TODO: exec()
     if(execv(ecmd->argv[0], ecmd->argv) < 0) {
-        fprintf(stderr, "exec returns error\n");
-        exit(0);
+        // try /bin
+        char buf[100];
+        strcpy(buf,ecmd->argv[0]);
+        strcpy(ecmd->argv[0], "/bin/");
+        strcat(ecmd->argv[0], buf);
+        if(execv(ecmd->argv[0], ecmd->argv) < 0) {
+            fprintf(stderr, "exec returns error\n");
+            exit(0);
+        }
     }
     break;
 
@@ -88,8 +95,23 @@ runcmd(struct cmd *cmd)
 
   case '|':
     pcmd = (struct pipecmd*)cmd;
-    fprintf(stderr, "pipe not implemented\n");
+    // fprintf(stderr, "pipe not implemented\n");
     // Your code here ...
+    pipe(p);
+    if(fork1()==0) {
+        close(1);
+        dup(p[1]);
+        close(p[0]);
+        close(p[1]);
+        runcmd(pcmd->left);
+    }
+    
+    close(0);
+    dup(p[0]);
+    close(p[0]);
+    close(p[1]);
+    runcmd(pcmd->right);
+    
     break;
   }    
   exit(0);
