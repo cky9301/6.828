@@ -39,6 +39,11 @@ struct pipecmd {
 int fork1(void);  // Fork but exits on failure.
 struct cmd *parsecmd(char*);
 
+const char *path[] = {
+    "/bin/",
+    "/usr/bin/"
+};
+
 // Execute cmd.  Never returns.
 void
 runcmd(struct cmd *cmd)
@@ -66,13 +71,16 @@ runcmd(struct cmd *cmd)
     if(execv(ecmd->argv[0], ecmd->argv) < 0) {
         // try /bin
         char buf[100];
+        int i;
+        int ret = 0;
         strcpy(buf,ecmd->argv[0]);
-        strcpy(ecmd->argv[0], "/bin/");
-        strcat(ecmd->argv[0], buf);
-        if(execv(ecmd->argv[0], ecmd->argv) < 0) {
-            fprintf(stderr, "exec returns error\n");
-            exit(0);
+        for(i=0;i<2;++i) {
+            strcpy(ecmd->argv[0], path[i]);
+            strcat(ecmd->argv[0], buf);
+            ret = execv(ecmd->argv[0], ecmd->argv);
         }
+        fprintf(stderr, "exec returns error\n");
+        exit(0);
     }
     break;
 
@@ -105,7 +113,7 @@ runcmd(struct cmd *cmd)
         close(p[1]);
         runcmd(pcmd->left);
     }
-    
+
     close(0);
     dup(p[0]);
     close(p[0]);
