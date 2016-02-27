@@ -92,7 +92,7 @@ mon_backtrace(int argc, char **argv, struct Trapframe *tf)
 #define WHITESPACE "\t\r\n "
 #define MAXARGS 16
 
-  static int
+static int
 runcmd(char *buf, struct Trapframe *tf)
 {
   int argc;
@@ -131,7 +131,7 @@ runcmd(char *buf, struct Trapframe *tf)
   return 0;
 }
 
-  void
+void
 monitor(struct Trapframe *tf)
 {
   char *buf;
