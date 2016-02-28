@@ -104,8 +104,40 @@ boot_alloc(uint32_t n)
 
   result = nextfree;
   nextfree += ROUNDUP(n, PGSIZE);
+  if ((size_t)nextfree > npages*PGSIZE)
+    panic("boot_alloc: out of memory\n");
 
 	return result;
+}
+
+// TODO: chky
+// helper function
+// maps kernel virtual address to physical address
+static inline void
+map_va2pa(void *kva, physaddr_t pa, size_t n, int perm)
+{
+  assert((uintptr_t)kva%PGSIZE == 0);
+  n = ROUNDUP(n, PGSIZE);
+  size_t last_pde_size = n%PTSIZE;
+  uintptr_t kva_end = (uintptr_t)kva+n;
+  int pdx, ptx;  
+  for (pdx=PDX(kva); pdx<PDX(kva_end); pdx++) {
+    struct PageInfo *pp;
+    physaddr_t ptable_pa;
+    // allocate a page for this page table
+    pp = page_alloc(1);
+    if (!pp)
+      panic("map_va2pa: out of memory\n");
+    ptable_pa = page2pa(pp); // physical address of the page table
+    assert(ptable_pa%PGSIZE == 0);
+    kern_pgdir[pdx] = ptable_pa | perm;
+    pte_t *ptable = KADDR(ptable_pa);
+    size_t ptable_size = (pdx == PDX(kva_end)-1)? last_pde_size : PTSIZE;
+    for (ptx=0;ptx<PTX(ptable_size); ptx++) {
+      void *current_kva = PGADDR(pdx, ptx, 0);
+      ptable[ptx] = PADDR(current_kva) | perm;
+    }
+  }
 }
 
 // Set up a two-level page table:
@@ -151,8 +183,9 @@ mem_init(void)
 	// to initialize all fields of each struct PageInfo to 0.
 	// Your code goes here:
   // TODO: chky
-  pages = (struct PageInfo *) boot_alloc(npages * sizeof(struct PageInfo));
-  memset(pages, 0, npages * sizeof(struct PageInfo));
+  uint32_t size_of_pages = npages * sizeof(struct PageInfo);
+  pages = (struct PageInfo *) boot_alloc(size_of_pages);
+  memset(pages, 0, size_of_pages);
 
 	//////////////////////////////////////////////////////////////////////
 	// Now that we've allocated the initial kernel data structures, we set
@@ -176,6 +209,9 @@ mem_init(void)
 	//      (ie. perm = PTE_U | PTE_P)
 	//    - pages itself -- kernel RW, user NONE
 	// Your code goes here:
+  // TODO: chky
+	// FIXME: 
+  map_va2pa((void *)pages, UPAGES, size_of_pages, PTE_U | PTE_P);
 
 	//////////////////////////////////////////////////////////////////////
 	// Use the physical memory that 'bootstack' refers to as the kernel
@@ -188,6 +224,8 @@ mem_init(void)
 	//       overwrite memory.  Known as a "guard page".
 	//     Permissions: kernel RW, user NONE
 	// Your code goes here:
+  // TODO: chky
+  map_va2pa((void *)(KSTACKTOP-KSTKSIZE), PADDR(bootstack), KSTKSIZE, PTE_W | PTE_P);
 
 	//////////////////////////////////////////////////////////////////////
 	// Map all of physical memory at KERNBASE.
@@ -197,6 +235,10 @@ mem_init(void)
 	// we just set up the mapping anyway.
 	// Permissions: kernel RW, user NONE
 	// Your code goes here:
+  // TODO: chky
+  uint32_t phsize = 0x100000000 - KERNBASE;
+  map_va2pa((void *)KERNBASE, 0, phsize, PTE_W | PTE_P);
+
 
 	// Check that the initial page directory has been set up correctly.
 	check_kern_pgdir();
@@ -255,8 +297,26 @@ page_init(void)
 	// Change the code to reflect this.
 	// NB: DO NOT actually touch the physical memory corresponding to
 	// free pages!
-	size_t i;
-	for (i = 0; i < npages; i++) {
+	
+  // TODO: chky
+  // size_t i;
+	// for (i = 0; i < npages; i++) {
+	// 	pages[i].pp_ref = 0;
+	// 	pages[i].pp_link = page_free_list;
+	// 	page_free_list = &pages[i];
+	// }
+  size_t i;
+	for (i = 1; i < npages_basemem; i++) {
+		pages[i].pp_ref = 0;
+		pages[i].pp_link = page_free_list;
+		page_free_list = &pages[i];
+	}
+  assert(npages_basemem*PGSIZE <= IOPHYSMEM);
+  // skip IO hole, kernel and page table
+  char *nextfree = boot_alloc(0);
+  uint32_t nextfreepaddr = PADDR(nextfree);
+  assert(EXTPHYSMEM < nextfreepaddr);
+  for (i = nextfreepaddr/PGSIZE; i < npages; i++) {
 		pages[i].pp_ref = 0;
 		pages[i].pp_link = page_free_list;
 		page_free_list = &pages[i];
@@ -279,7 +339,17 @@ struct PageInfo *
 page_alloc(int alloc_flags)
 {
 	// Fill this function in
-	return 0;
+  // TODO: chky
+  struct PageInfo *fp;
+  int c;
+  if (!page_free_list)
+    return NULL;
+  fp = page_free_list;
+  page_free_list = fp->pp_link;
+  fp->pp_link = NULL;
+  if (alloc_flags & ALLOC_ZERO)
+    memset(page2kva(fp),0,PGSIZE);
+	return fp;
 }
 
 //
@@ -292,6 +362,11 @@ page_free(struct PageInfo *pp)
 	// Fill this function in
 	// Hint: You may want to panic if pp->pp_ref is nonzero or
 	// pp->pp_link is not NULL.
+  assert(pp != NULL);
+  if (pp->pp_ref == 0)
+    panic("page_free: reference is not 0\n");
+  pp->pp_link = page_free_list;
+  page_free_list = pp;
 }
 
 //
