@@ -110,14 +110,6 @@ boot_alloc(uint32_t n)
 	return result;
 }
 
-// TODO: chky
-// helper function
-// maps kernel virtual address to physical address
-static inline void
-map_va2pa(void *kva, physaddr_t pa, size_t n, int perm)
-{
-}
-
 // Set up a two-level page table:
 //    kern_pgdir is its linear (virtual) address of the root
 //
@@ -189,7 +181,7 @@ mem_init(void)
 	// Your code goes here:
   // TODO: chky
 	// FIXME: 
-  map_va2pa((void *)pages, UPAGES, size_of_pages, PTE_U | PTE_P);
+  boot_map_region(kern_pgdir, UPAGES, ROUNDUP(size_of_pages, PGSIZE), PADDR(pages), PTE_U);
 
 	//////////////////////////////////////////////////////////////////////
 	// Use the physical memory that 'bootstack' refers to as the kernel
@@ -203,7 +195,7 @@ mem_init(void)
 	//     Permissions: kernel RW, user NONE
 	// Your code goes here:
   // TODO: chky
-  map_va2pa((void *)(KSTACKTOP-KSTKSIZE), PADDR(bootstack), KSTKSIZE, PTE_W | PTE_P);
+  boot_map_region(kern_pgdir, KSTACKTOP-KSTKSIZE, KSTKSIZE, PADDR(bootstack), PTE_W);
 
 	//////////////////////////////////////////////////////////////////////
 	// Map all of physical memory at KERNBASE.
@@ -214,9 +206,8 @@ mem_init(void)
 	// Permissions: kernel RW, user NONE
 	// Your code goes here:
   // TODO: chky
-  uint32_t phsize = 0x100000000 - KERNBASE;
-  map_va2pa((void *)KERNBASE, 0, phsize, PTE_W | PTE_P);
-
+  n = 1024*1024-KERNBASE/PGSIZE;
+  boot_map_region(kern_pgdir, KERNBASE, n*PGSIZE, 0, PTE_W);
 
 	// Check that the initial page directory has been set up correctly.
 	check_kern_pgdir();
@@ -393,7 +384,7 @@ pgdir_walk(pde_t *pgdir, const void *va, int create)
     if (!create)
       return NULL;
     else {
-      // TODO: create pt
+      // TODO: create page table page
       struct PageInfo *pi = page_alloc(1);
       if (!pi)
         return NULL;
@@ -429,23 +420,25 @@ boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm
   assert(va%PGSIZE == 0);
   assert(pa%PGSIZE == 0);
   assert(size%PGSIZE == 0);
-  uintptr_t i, j;
+  size_t n;
+  uint32_t i, j;
   pte_t *pgtab;
+  n = size/PGSIZE;
   pgtab = pgdir_walk(pgdir, (void *)ROUNDDOWN(va, PTSIZE), 1);
   assert(pgtab != NULL);
   // walk the page table
   // prolog
-  for (j = va; j < ROUNDUP(va, PTSIZE) && j < va+size; j += PGSIZE) {
-    pgtab[PTX(j)] = pa | PGOFF(perm|PTE_P);
+  for (j = PGNUM(va); j < ROUNDUP(PGNUM(va), NPTENTRIES) && j < PGNUM(va) + n; j++) {
+    pgtab[j%NPTENTRIES] = pa | PGOFF(perm|PTE_P);
     pa += PGSIZE;
   }
-  for (i = ROUNDUP(va, PTSIZE); i < va + size; i += PTSIZE) {
-    pgtab = pgdir_walk(pgdir, (void *)i, 1);
+  for (i = ROUNDUP(PGNUM(va), NPTENTRIES); i < PGNUM(va) + n; i += NPTENTRIES) {
+    pgtab = pgdir_walk(pgdir, PGADDR(j/NPTENTRIES, 0, 0), 1);
     assert(pgtab != NULL);
     
     // walk the page table
-    for (j = i; j < i+PTSIZE && j < va+size; j += PGSIZE) {
-      pgtab[PTX(j)] = pa | PGOFF(perm|PTE_P);
+    for (j = i; j < i + NPTENTRIES &&  j < PGNUM(va) + n; j++) {
+      pgtab[j%NPTENTRIES] = pa | PGOFF(perm|PTE_P);
       pa += PGSIZE;
     }
   }
@@ -727,7 +720,7 @@ check_kern_pgdir(void)
 
 	// check phys mem
 	for (i = 0; i < npages * PGSIZE; i += PGSIZE)
-		assert(check_va2pa(pgdir, KERNBASE + i) == i);
+    assert(check_va2pa(pgdir, KERNBASE + i) == i);
 
 	// check kernel stack
 	for (i = 0; i < KSTKSIZE; i += PGSIZE)
@@ -736,7 +729,7 @@ check_kern_pgdir(void)
 
 	// check PDE permissions
 	for (i = 0; i < NPDENTRIES; i++) {
-		switch (i) {
+    switch (i) {
 		case PDX(UVPT):
 		case PDX(KSTACKTOP-1):
 		case PDX(UPAGES):
