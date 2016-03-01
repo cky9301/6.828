@@ -116,28 +116,6 @@ boot_alloc(uint32_t n)
 static inline void
 map_va2pa(void *kva, physaddr_t pa, size_t n, int perm)
 {
-  assert((uintptr_t)kva%PGSIZE == 0);
-  n = ROUNDUP(n, PGSIZE);
-  size_t last_pde_size = n%PTSIZE;
-  uintptr_t kva_end = (uintptr_t)kva+n;
-  int pdx, ptx;  
-  for (pdx=PDX(kva); pdx<PDX(kva_end); pdx++) {
-    struct PageInfo *pp;
-    physaddr_t ptable_pa;
-    // allocate a page for this page table
-    pp = page_alloc(1);
-    if (!pp)
-      panic("map_va2pa: out of memory\n");
-    ptable_pa = page2pa(pp); // physical address of the page table
-    assert(ptable_pa%PGSIZE == 0);
-    kern_pgdir[pdx] = ptable_pa | perm;
-    pte_t *ptable = KADDR(ptable_pa);
-    size_t ptable_size = (pdx == PDX(kva_end)-1)? last_pde_size : PTSIZE;
-    for (ptx=0;ptx<PTX(ptable_size); ptx++) {
-      void *current_kva = PGADDR(pdx, ptx, 0);
-      ptable[ptx] = PADDR(current_kva) | perm;
-    }
-  }
 }
 
 // Set up a two-level page table:
@@ -406,7 +384,30 @@ pte_t *
 pgdir_walk(pde_t *pgdir, const void *va, int create)
 {
 	// Fill this function in
-	return NULL;
+  // TODO: chky
+  pte_t *p;
+
+	pgdir = &pgdir[PDX(va)];
+	if (!(*pgdir & PTE_P)) {
+    // if page table page not exist
+    if (!create)
+      return NULL;
+    else {
+      // TODO: create pt
+      struct PageInfo *pi = page_alloc(1);
+      if (!pi)
+        return NULL;
+      physaddr_t ppa = page2pa(pi);
+      assert(ppa%PGSIZE == 0);
+      pi->pp_ref += 1;
+      *pgdir = ppa | PTE_U | PTE_W | PTE_P;
+      p = (pte_t *)KADDR(ppa);
+    }
+  }
+	else
+    p = (pte_t*) KADDR(PTE_ADDR(*pgdir));
+
+	return &p[PTX(va)];
 }
 
 //
@@ -424,6 +425,30 @@ static void
 boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm)
 {
 	// Fill this function in
+  // TODO: chky
+  assert(va%PGSIZE == 0);
+  assert(pa%PGSIZE == 0);
+  assert(size%PGSIZE == 0);
+  uintptr_t i, j;
+  pte_t *pgtab;
+  pgtab = pgdir_walk(pgdir, (void *)ROUNDDOWN(va, PTSIZE), 1);
+  assert(pgtab != NULL);
+  // walk the page table
+  // prolog
+  for (j = va; j < ROUNDUP(va, PTSIZE) && j < va+size; j += PGSIZE) {
+    pgtab[PTX(j)] = pa | PGOFF(perm|PTE_P);
+    pa += PGSIZE;
+  }
+  for (i = ROUNDUP(va, PTSIZE); i < va + size; i += PTSIZE) {
+    pgtab = pgdir_walk(pgdir, (void *)i, 1);
+    assert(pgtab != NULL);
+    
+    // walk the page table
+    for (j = i; j < i+PTSIZE && j < va+size; j += PGSIZE) {
+      pgtab[PTX(j)] = pa | PGOFF(perm|PTE_P);
+      pa += PGSIZE;
+    }
+  }
 }
 
 //
@@ -455,6 +480,15 @@ int
 page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
 {
 	// Fill this function in
+  // TODO: chky
+  pte_t *pte, *pgtab;
+  pgtab = pgdir_walk(pgdir, ROUNDDOWN(va, PTSIZE), 1);
+  if (!pgtab)
+    return -E_NO_MEM;
+  pp->pp_ref++;
+  page_remove(pgdir, va);
+  pte = &pgtab[PTX(va)];
+  *pte = page2pa(pp) | PGOFF(perm|PTE_P);
 	return 0;
 }
 
@@ -473,7 +507,15 @@ struct PageInfo *
 page_lookup(pde_t *pgdir, void *va, pte_t **pte_store)
 {
 	// Fill this function in
-	return NULL;
+	// TODO: chky
+  physaddr_t pa;
+  pte_t *pgtab;
+  pgtab = pgdir_walk(pgdir, va, 0);
+  if (!pgtab || !(*pgtab & PTE_P))
+    return NULL;
+  pa = PTE_ADDR(*pgtab);
+  *pte_store = pgtab;
+  return pa2page(pa);
 }
 
 //
@@ -495,6 +537,16 @@ void
 page_remove(pde_t *pgdir, void *va)
 {
 	// Fill this function in
+  // TODO: chky
+  struct PageInfo *pp;
+  pte_t *pte;
+  pp = page_lookup(pgdir, va, &pte);
+  if (!pp)
+    return;
+  assert(pp->pp_ref>0);
+  page_decref(pp);
+  memset(pte, 0, sizeof(pte_t));
+  tlb_invalidate(pgdir, va);
 }
 
 //
