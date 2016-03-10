@@ -32,6 +32,25 @@ idtinit(void)
   lidt(idt, sizeof(idt));
 }
 
+// TODO: lazy page alloc
+extern 
+int mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm);
+
+void
+allocpage(pde_t *pgdir, uint addr)
+{
+  char *mem;
+  if (addr >= KERNBASE)
+    panic("lacy page alloc: touch kernel space");
+  addr = PGROUNDDOWN(addr);
+  mem = kalloc();
+  if (mem == 0) {
+    panic("lazy page alloc: out of memory");
+  }
+  memset(mem, 0, PGSIZE);
+  mappages(pgdir, (char *)addr, PGSIZE, v2p(mem), PTE_W|PTE_U);
+}
+
 //PAGEBREAK: 41
 void
 trap(struct trapframe *tf)
@@ -87,6 +106,14 @@ trap(struct trapframe *tf)
       panic("trap");
     }
     // In user space, assume process misbehaved.
+    // TODO: lazy page allocation, chky
+    if (tf->trapno == T_PGFLT) {
+      uint addr = rcr2();
+      if (addr >= proc->sz)
+        panic("lazy page alloc: out bound");
+      allocpage(proc->pgdir, addr);
+      break;
+    }
     cprintf("pid %d %s: trap %d err %d on cpu %d "
             "eip 0x%x addr 0x%x--kill proc\n",
             proc->pid, proc->name, tf->trapno, tf->err, cpu->id, tf->eip, 
