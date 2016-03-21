@@ -454,7 +454,7 @@ boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm
     pa += PGSIZE;
   }
   for (i = ROUNDUP(PGNUM(va), NPTENTRIES); i < PGNUM(va) + n; i += NPTENTRIES) {
-    pgtab = pgdir_walk(pgdir, PGADDR(j/NPTENTRIES, 0, 0), 1);
+    pgtab = pgdir_walk(pgdir, PGADDR(i/NPTENTRIES, 0, 0), 1);
     assert(pgtab != NULL);
     
     // walk the page table
@@ -528,7 +528,8 @@ page_lookup(pde_t *pgdir, void *va, pte_t **pte_store)
   if (!pgtab || !(*pgtab & PTE_P))
     return NULL;
   pa = PTE_ADDR(*pgtab);
-  *pte_store = pgtab;
+  if (pte_store)
+    *pte_store = pgtab;
   return pa2page(pa);
 }
 
