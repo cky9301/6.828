@@ -87,4 +87,26 @@ _alltraps:
   pushl %esp
   call trap /* TODO: does not return? */
   
-  
+.data
+.globl handlers
+handlers: 
+  .long divide
+  .long debug
+  .long nmi
+  .long brkpt
+  .long oflow
+  .long bound
+  .long illop
+  .long device
+  .long dblflt
+  .long 0 /* coproc */
+  .long tss
+  .long segnp
+  .long stack
+  .long gpflt
+  .long pgflt
+  .long 0 /* res */
+  .long fperr
+  .long align
+  .long mchk
+  .long simderr
