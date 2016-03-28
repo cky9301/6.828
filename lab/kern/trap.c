@@ -71,7 +71,7 @@ trap_init(void)
   
   //FIXME: istrap, sel, off, dpl
   for (i = 0; i <= T_SIMDERR; i++) {
-    SETGATE(idt[i], 0, GD_KT, handlers[i], 0);
+    SETGATE(idt[i], 0, GD_KT, handlers[i], (i==T_BRKPT)? 3:0);
   }
 
 	// Per-CPU setup 
@@ -152,8 +152,15 @@ trap_dispatch(struct Trapframe *tf)
 	// Handle processor exceptions.
 	// LAB 3: Your code here.
   // TODO: chky
-  if (tf->tf_trapno == T_PGFLT) {
-    page_fault_handler(tf);
+  switch (tf->tf_trapno) {
+    case T_PGFLT:
+        page_fault_handler(tf);
+        break;
+    case T_BRKPT:
+        monitor(tf);
+        break;
+    default:
+        break;
   }
 
 	// Unexpected trap: The user process or the kernel has a bug.
