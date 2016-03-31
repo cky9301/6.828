@@ -237,6 +237,15 @@ page_fault_handler(struct Trapframe *tf)
 	// Handle kernel-mode page faults.
 
 	// LAB 3: Your code here.
+  // TODO: chky
+  if ((tf->tf_cs & 3) != 3) {
+    pte_t *pte;
+    if (fault_va >= ULIM 
+        || !page_lookup(curenv->env_pgdir, (void *)fault_va, &pte) 
+        || !(*pte&PTE_U)) {
+      panic("fault in kernel");
+    }
+  }
 
 	// We've already handled kernel-mode exceptions, so if we get here,
 	// the page fault happened in user mode.
