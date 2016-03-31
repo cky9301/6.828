@@ -50,26 +50,28 @@
 /*
  * TODO: chky
  */
-TRAPHANDLER_NOEC(divide, T_DIVIDE)
-TRAPHANDLER_NOEC(debug, T_DEBUG)
-TRAPHANDLER_NOEC(nmi, T_NMI)
-TRAPHANDLER_NOEC(brkpt, T_BRKPT)
-TRAPHANDLER_NOEC(oflow, T_OFLOW)
-TRAPHANDLER_NOEC(bound, T_BOUND)
-TRAPHANDLER_NOEC(illop, T_ILLOP)
-TRAPHANDLER_NOEC(device, T_DEVICE)
-TRAPHANDLER(dblflt, T_DBLFLT)
-/* TRAPHANDLER_NOEC(coproc, T_COPROC) reserved*/
-TRAPHANDLER(tss, T_TSS)
-TRAPHANDLER(segnp, T_SEGNP)
-TRAPHANDLER(stack, T_STACK)
-TRAPHANDLER(gpflt, T_GPFLT)
-TRAPHANDLER(pgflt, T_PGFLT)
-/* TRAPHANDLER_NOEC(res, T_RES) reserved*/ 
-TRAPHANDLER_NOEC(fperr, T_FPERR)
-TRAPHANDLER_NOEC(align, T_ALIGN)
-TRAPHANDLER_NOEC(mchk, T_MCHK)
-TRAPHANDLER_NOEC(simderr, T_SIMDERR)
+TRAPHANDLER_NOEC(handler0, T_DIVIDE)
+TRAPHANDLER_NOEC(handler1, T_DEBUG)
+TRAPHANDLER_NOEC(handler2, T_NMI)
+TRAPHANDLER_NOEC(handler3, T_BRKPT)
+TRAPHANDLER_NOEC(handler4, T_OFLOW)
+TRAPHANDLER_NOEC(handler5, T_BOUND)
+TRAPHANDLER_NOEC(handler6, T_ILLOP)
+TRAPHANDLER_NOEC(handler7, T_DEVICE)
+TRAPHANDLER(handler8, T_DBLFLT)
+/* TRAPHANDLER_NOEC(handler9, T_COPROC) reserved*/
+TRAPHANDLER(handler10, T_TSS)
+TRAPHANDLER(handler11, T_SEGNP)
+TRAPHANDLER(handler12, T_STACK)
+TRAPHANDLER(handler13, T_GPFLT)
+TRAPHANDLER(handler14, T_PGFLT)
+/* TRAPHANDLER_NOEC(handler15, T_RES) reserved*/ 
+TRAPHANDLER_NOEC(handler16, T_FPERR)
+TRAPHANDLER_NOEC(handler17, T_ALIGN)
+TRAPHANDLER_NOEC(handler18, T_MCHK)
+TRAPHANDLER_NOEC(handler19, T_SIMDERR)
+
+TRAPHANDLER_NOEC(handler48, T_SYSCALL)
 
 
 /*
@@ -90,23 +92,23 @@ _alltraps:
 .data
 .globl handlers
 handlers: 
-  .long divide
-  .long debug
-  .long nmi
-  .long brkpt
-  .long oflow
-  .long bound
-  .long illop
-  .long device
-  .long dblflt
+  .long handler0
+  .long handler1
+  .long handler2
+  .long handler3
+  .long handler4
+  .long handler5
+  .long handler6
+  .long handler7
+  .long handler8
   .long 0 /* coproc */
-  .long tss
-  .long segnp
-  .long stack
-  .long gpflt
-  .long pgflt
+  .long handler10
+  .long handler11
+  .long handler12
+  .long handler13
+  .long handler14
   .long 0 /* res */
-  .long fperr
-  .long align
-  .long mchk
-  .long simderr
+  .long handler16
+  .long handler17
+  .long handler18
+  .long handler19

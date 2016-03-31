@@ -21,6 +21,18 @@ sys_cputs(const char *s, size_t len)
 	// Destroy the environment if not.
 
 	// LAB 3: Your code here.
+  // TODO: chky
+  pte_t *pte;
+  uintptr_t beg = ROUNDDOWN((uintptr_t)s, PGSIZE);
+  uintptr_t end = ROUNDUP((uintptr_t)s + len, PGSIZE);
+  if ((uintptr_t)s > (uintptr_t)s + len)
+    env_destroy(curenv);
+ 
+  for (; beg < end; beg += PGSIZE) {
+    if ((page_lookup(curenv->env_pgdir, (char *)beg, &pte) == NULL) || !(*pte & PTE_U)) {
+      env_destroy(curenv);
+    }
+  } 
 
 	// Print the string supplied by the user.
 	cprintf("%.*s", len, s);
@@ -69,12 +81,27 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
 	// Call the function corresponding to the 'syscallno' parameter.
 	// Return any appropriate return value.
 	// LAB 3: Your code here.
-
-	panic("syscall not implemented");
+  // TODO: chky
+  int r = 0;
+	//panic("syscall not implemented");
 
 	switch (syscallno) {
+  case SYS_cputs:
+    sys_cputs((char *)a1, a2);
+    break;
+  case SYS_cgetc:
+    r = sys_cgetc();
+    break;
+  case SYS_getenvid:
+    r = sys_getenvid();
+    break;
+  case SYS_env_destroy:
+    r = sys_env_destroy(a1);
+    break;
 	default:
-		return -E_NO_SYS;
+		r = -E_INVAL;
+    break;
 	}
+  return r;
 }
 

@@ -68,11 +68,13 @@ trap_init(void)
   // TODO: chky
   int i;
   extern uint32_t handlers[];
+  extern void handler48();
   
   //FIXME: istrap, sel, off, dpl
   for (i = 0; i <= T_SIMDERR; i++) {
     SETGATE(idt[i], 0, GD_KT, handlers[i], (i==T_BRKPT)? 3:0);
   }
+  SETGATE(idt[T_SYSCALL], 0, GD_KT, handler48, 3);
 
 	// Per-CPU setup 
 	trap_init_percpu();
@@ -152,13 +154,25 @@ trap_dispatch(struct Trapframe *tf)
 	// Handle processor exceptions.
 	// LAB 3: Your code here.
   // TODO: chky
+  int r;
   switch (tf->tf_trapno) {
     case T_PGFLT:
         page_fault_handler(tf);
         break;
     case T_BRKPT:
+        // TODO: lab3 ex6 challenge
         monitor(tf);
         break;
+    case T_SYSCALL:
+        r = syscall(tf->tf_regs.reg_eax,    // syscallno
+                    tf->tf_regs.reg_edx,    // a1
+                    tf->tf_regs.reg_ecx,    // a2
+                    tf->tf_regs.reg_ebx,    // a3
+                    tf->tf_regs.reg_edi,    // a4
+                    tf->tf_regs.reg_esi     // a5
+                    );
+        tf->tf_regs.reg_eax = r;
+        return;
     default:
         break;
   }
