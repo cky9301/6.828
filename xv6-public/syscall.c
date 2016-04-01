@@ -101,6 +101,7 @@ extern int sys_uptime(void);
 // TODO: chky, date system call
 extern int sys_date(void);
 extern int sys_dup2(void);
+extern int sys_alarm(void);
 
 static int (*syscalls[])(void) = {
 [SYS_fork]    sys_fork,
@@ -127,6 +128,7 @@ static int (*syscalls[])(void) = {
 // TODO: chky, date system call
 [SYS_date]    sys_date,
 [SYS_dup2]    sys_dup2,
+[SYS_alarm]    sys_alarm,
 };
 
 // FIXME: print syscall args

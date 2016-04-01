@@ -25,6 +25,9 @@ int sleep(int);
 int uptime(void);
 // TODO: HW2 date system call 
 int date(struct rtcdate *);
+int dup2(int, int);
+// TODO: HW5 alarm system call 
+int alarm(int ticks, void (*handle)());
 
 // ulib.c
 int stat(char*, struct stat*);

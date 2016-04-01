@@ -49,6 +49,12 @@ found:
   p->pid = nextpid++;
   release(&ptable.lock);
 
+  // TODO: HW5 initialize alarm
+  p->alarmticks = 0;
+  p->alarmhandler = 0;
+  p->curticks = 0;
+  p->lastticks = 0;
+
   // Allocate kernel stack.
   if((p->kstack = kalloc()) == 0){
     p->state = UNUSED;

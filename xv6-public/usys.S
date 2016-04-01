@@ -32,3 +32,4 @@ SYSCALL(uptime)
 // TODO: chky
 SYSCALL(date)
 SYSCALL(dup2)
+SYSCALL(alarm)
