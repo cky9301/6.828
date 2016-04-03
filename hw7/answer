@@ -1,0 +1,12 @@
+1. race in ide.c:
+
+ide interrupt happens during iderw acquires the lock.
+
+2. race in file.c:
+
+usually not panic, because filealloc is seldom interrupted
+panics because timer int happens during filealloc, and time int check IF
+
+3. xv6 lock
+
+avoid race condition for lk->pcs[0] and lk->cpu
