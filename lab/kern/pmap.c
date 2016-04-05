@@ -331,11 +331,16 @@ page_init(void)
 	// }
   size_t i;
 	for (i = 1; i < npages_basemem; i++) {
+    // LAB 4
+    // TODO: avoid adding MPENTRY_PADDR to freelist
+    if (i == MPENTRY_PADDR/PGSIZE)
+      continue;
 		pages[i].pp_ref = 0;
 		pages[i].pp_link = page_free_list;
 		page_free_list = &pages[i];
 	}
   assert(npages_basemem*PGSIZE <= IOPHYSMEM);
+  assert(npages_basemem*PGSIZE >  MPENTRY_PADDR);
   // skip IO hole, kernel and page table
   char *nextfree = boot_alloc(0);
   uint32_t nextfreepaddr = PADDR(nextfree);
@@ -642,7 +647,16 @@ mmio_map_region(physaddr_t pa, size_t size)
 	// Hint: The staff solution uses boot_map_region.
 	//
 	// Your code here:
-	panic("mmio_map_region not implemented");
+  // LAB 4: TODO chky
+  size = ROUNDUP(size, PGSIZE);
+  if (base + size > MMIOLIM)
+    panic("mmio_map_region overflow MMIOLIM");
+  boot_map_region(kern_pgdir, base, size, pa, PTE_PCD | PTE_PWT | PTE_W);
+  uintptr_t ret = base;
+  base += size;
+
+  return (void *)ret;
+  panic("mmio_map_region not implemented");
 }
 
 static uintptr_t user_mem_check_addr;
