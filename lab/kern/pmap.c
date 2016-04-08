@@ -103,14 +103,14 @@ boot_alloc(uint32_t n)
 	// to a multiple of PGSIZE.
 	//
 	// LAB 2: Your code here.
-  // TODO: chky
-  if(n == 0)
-    return nextfree;
+        // TODO: chky
+        if(n == 0)
+            return nextfree;
 
-  result = nextfree;
-  nextfree += ROUNDUP(n, PGSIZE);
-  if (PADDR(nextfree) > npages*PGSIZE)
-    panic("boot_alloc: out of memory\n");
+        result = nextfree;
+        nextfree += ROUNDUP(n, PGSIZE);
+        if (PADDR(nextfree) > npages*PGSIZE)
+            panic("boot_alloc: out of memory\n");
 
 	return result;
 }
@@ -157,18 +157,18 @@ mem_init(void)
 	// array.  'npages' is the number of physical pages in memory.  Use memset
 	// to initialize all fields of each struct PageInfo to 0.
 	// Your code goes here:
-  // TODO: chky
-  uint32_t size_of_pages = npages * sizeof(struct PageInfo);
-  pages = (struct PageInfo *) boot_alloc(size_of_pages);
-  memset(pages, 0, size_of_pages);
-
-	//////////////////////////////////////////////////////////////////////
-	// Make 'envs' point to an array of size 'NENV' of 'struct Env'.
-	// LAB 3: Your code here.
-  // TODO: chky
-  uint32_t size_of_envs = NENV * sizeof(struct Env);
-  envs = (struct Env *) boot_alloc(size_of_envs);
-  memset(envs, 0, size_of_envs);
+        // TODO: chky
+        uint32_t size_of_pages = npages * sizeof(struct PageInfo);
+        pages = (struct PageInfo *) boot_alloc(size_of_pages);
+        memset(pages, 0, size_of_pages);
+        
+        //////////////////////////////////////////////////////////////////////
+        // Make 'envs' point to an array of size 'NENV' of 'struct Env'.
+        // LAB 3: Your code here.
+        // TODO: chky
+        uint32_t size_of_envs = NENV * sizeof(struct Env);
+        envs = (struct Env *) boot_alloc(size_of_envs);
+        memset(envs, 0, size_of_envs);
 
 	//////////////////////////////////////////////////////////////////////
 	// Now that we've allocated the initial kernel data structures, we set
@@ -192,9 +192,9 @@ mem_init(void)
 	//      (ie. perm = PTE_U | PTE_P)
 	//    - pages itself -- kernel RW, user NONE
 	// Your code goes here:
-  // TODO: chky
+        // TODO: chky
 	// FIXME: 
-  boot_map_region(kern_pgdir, UPAGES, ROUNDUP(size_of_pages, PGSIZE), PADDR(pages), PTE_U);
+        boot_map_region(kern_pgdir, UPAGES, ROUNDUP(size_of_pages, PGSIZE), PADDR(pages), PTE_U);
 
 	//////////////////////////////////////////////////////////////////////
 	// Map the 'envs' array read-only by the user at linear address UENVS
@@ -203,8 +203,8 @@ mem_init(void)
 	//    - the new image at UENVS  -- kernel R, user R
 	//    - envs itself -- kernel RW, user NONE
 	// LAB 3: Your code here.
-  // TODO: chky
-  boot_map_region(kern_pgdir, UENVS, ROUNDUP(size_of_envs, PGSIZE), PADDR(envs), PTE_U);
+        // TODO: chky
+        boot_map_region(kern_pgdir, UENVS, ROUNDUP(size_of_envs, PGSIZE), PADDR(envs), PTE_U);
 
 	//////////////////////////////////////////////////////////////////////
 	// Use the physical memory that 'bootstack' refers to as the kernel
@@ -217,8 +217,8 @@ mem_init(void)
 	//       overwrite memory.  Known as a "guard page".
 	//     Permissions: kernel RW, user NONE
 	// Your code goes here:
-  // TODO: chky
-  boot_map_region(kern_pgdir, KSTACKTOP-KSTKSIZE, KSTKSIZE, PADDR(bootstack), PTE_W);
+        // TODO: chky
+        boot_map_region(kern_pgdir, KSTACKTOP-KSTKSIZE, KSTKSIZE, PADDR(bootstack), PTE_W);
 
 	//////////////////////////////////////////////////////////////////////
 	// Map all of physical memory at KERNBASE.
@@ -228,9 +228,9 @@ mem_init(void)
 	// we just set up the mapping anyway.
 	// Permissions: kernel RW, user NONE
 	// Your code goes here:
-  // TODO: chky
-  n = 1024*1024-KERNBASE/PGSIZE;
-  boot_map_region(kern_pgdir, KERNBASE, n*PGSIZE, 0, PTE_W);
+        // TODO: chky
+        n = 1024*1024-KERNBASE/PGSIZE;
+        boot_map_region(kern_pgdir, KERNBASE, n*PGSIZE, 0, PTE_W);
 
 	// Initialize the SMP-related parts of the memory map
 	mem_init_mp();
@@ -282,7 +282,12 @@ mem_init_mp(void)
 	//     Permissions: kernel RW, user NONE
 	//
 	// LAB 4: Your code here:
-
+        // TODO: chky
+        uint8_t i;
+        for (i = 0; i < NCPU; i++) {
+            uintptr_t kstacktop_i = KSTACKTOP - i * (KSTKSIZE + KSTKGAP); 
+            boot_map_region(kern_pgdir, kstacktop_i - KSTKSIZE, KSTKSIZE, PADDR(percpu_kstacks[i]), PTE_W);
+        }
 }
 
 // --------------------------------------------------------------
@@ -322,33 +327,35 @@ page_init(void)
 	// NB: DO NOT actually touch the physical memory corresponding to
 	// free pages!
 	
-  // TODO: chky
-  // size_t i;
+        // TODO: chky
+        // size_t i;
 	// for (i = 0; i < npages; i++) {
 	// 	pages[i].pp_ref = 0;
 	// 	pages[i].pp_link = page_free_list;
 	// 	page_free_list = &pages[i];
 	// }
-  size_t i;
+        size_t i;
 	for (i = 1; i < npages_basemem; i++) {
-    // LAB 4
-    // TODO: avoid adding MPENTRY_PADDR to freelist
-    if (i == MPENTRY_PADDR/PGSIZE)
-      continue;
-		pages[i].pp_ref = 0;
-		pages[i].pp_link = page_free_list;
-		page_free_list = &pages[i];
+            // LAB 4
+            // TODO: avoid adding MPENTRY_PADDR to freelist
+            if (i == MPENTRY_PADDR/PGSIZE) {
+                pages[i].pp_ref = 1;
+                continue;
+            }
+	    pages[i].pp_ref = 0;
+	    pages[i].pp_link = page_free_list;
+	    page_free_list = &pages[i];
 	}
-  assert(npages_basemem*PGSIZE <= IOPHYSMEM);
-  assert(npages_basemem*PGSIZE >  MPENTRY_PADDR);
-  // skip IO hole, kernel and page table
-  char *nextfree = boot_alloc(0);
-  uint32_t nextfreepaddr = PADDR(nextfree);
-  assert(EXTPHYSMEM < nextfreepaddr);
-  for (i = nextfreepaddr/PGSIZE; i < npages; i++) {
-		pages[i].pp_ref = 0;
-		pages[i].pp_link = page_free_list;
-		page_free_list = &pages[i];
+        assert(npages_basemem*PGSIZE <= IOPHYSMEM);
+        assert(npages_basemem*PGSIZE >  MPENTRY_PADDR);
+        // skip IO hole, kernel and page table
+        char *nextfree = boot_alloc(0);
+        uint32_t nextfreepaddr = PADDR(nextfree);
+        assert(EXTPHYSMEM < nextfreepaddr);
+        for (i = nextfreepaddr/PGSIZE; i < npages; i++) {
+	    pages[i].pp_ref = 0;
+	    pages[i].pp_link = page_free_list;
+	    page_free_list = &pages[i];
 	}
 }
 
@@ -647,16 +654,16 @@ mmio_map_region(physaddr_t pa, size_t size)
 	// Hint: The staff solution uses boot_map_region.
 	//
 	// Your code here:
-  // LAB 4: TODO chky
-  size = ROUNDUP(size, PGSIZE);
-  if (base + size > MMIOLIM)
-    panic("mmio_map_region overflow MMIOLIM");
-  boot_map_region(kern_pgdir, base, size, pa, PTE_PCD | PTE_PWT | PTE_W);
-  uintptr_t ret = base;
-  base += size;
+        // LAB 4: TODO chky
+        size = ROUNDUP(size, PGSIZE);
+        if (base + size > MMIOLIM)
+          panic("mmio_map_region overflow MMIOLIM");
+        boot_map_region(kern_pgdir, base, size, pa, PTE_PCD | PTE_PWT | PTE_W);
+        uintptr_t ret = base;
+        base += size;
 
-  return (void *)ret;
-  panic("mmio_map_region not implemented");
+        return (void *)ret;
+        panic("mmio_map_region not implemented");
 }
 
 static uintptr_t user_mem_check_addr;
