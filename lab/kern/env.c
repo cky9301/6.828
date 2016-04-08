@@ -555,16 +555,18 @@ env_run(struct Env *e)
 	//	e->env_tf to sensible values.
 
 	// LAB 3: Your code here.
-  // TODO: chky
-  if (curenv && curenv->env_status == ENV_RUNNING) {
-    curenv->env_status = ENV_RUNNABLE;
-  }
-  curenv = e;
-  curenv->env_status = ENV_RUNNING;
-  curenv->env_runs++;
-  lcr3(PADDR(e->env_pgdir));
-  env_pop_tf(&e->env_tf);
-	
-  panic("env_run not yet implemented");
+        // TODO: chky
+        if (curenv && curenv->env_status == ENV_RUNNING) {
+          curenv->env_status = ENV_RUNNABLE;
+        }
+        curenv = e;
+        curenv->env_status = ENV_RUNNING;
+        curenv->env_runs++;
+        lcr3(PADDR(e->env_pgdir));
+        // Lab 4 locking
+        unlock_kernel();
+        env_pop_tf(&e->env_tf);
+              
+        panic("env_run not yet implemented");
 }
 
