@@ -375,16 +375,16 @@ struct PageInfo *
 page_alloc(int alloc_flags)
 {
 	// Fill this function in
-  // TODO: chky
-  struct PageInfo *fp;
-  int c;
-  if (!page_free_list)
-    return NULL;
-  fp = page_free_list;
-  page_free_list = fp->pp_link;
-  fp->pp_link = NULL;
-  if (alloc_flags & ALLOC_ZERO)
-    memset(page2kva(fp),0,PGSIZE);
+        // TODO: chky
+        struct PageInfo *fp;
+        int c;
+        if (!page_free_list)
+          return NULL;
+        fp = page_free_list;
+        page_free_list = fp->pp_link;
+        fp->pp_link = NULL;
+        if (alloc_flags & ALLOC_ZERO)
+          memset(page2kva(fp),0,PGSIZE);
 	return fp;
 }
 
@@ -598,16 +598,16 @@ void
 page_remove(pde_t *pgdir, void *va)
 {
 	// Fill this function in
-  // TODO: chky
-  struct PageInfo *pp;
-  pte_t *pte;
-  pp = page_lookup(pgdir, va, &pte);
-  if (!pp)
-    return;
-  assert(pp->pp_ref>0);
-  page_decref(pp);
-  memset(pte, 0, sizeof(pte_t));
-  tlb_invalidate(pgdir, va);
+        // TODO: chky
+        struct PageInfo *pp;
+        pte_t *pte;
+        pp = page_lookup(pgdir, va, &pte);
+        if (!pp)
+          return;
+        assert(pp->pp_ref>0);
+        page_decref(pp);
+        memset(pte, 0, sizeof(pte_t));
+        tlb_invalidate(pgdir, va);
 }
 
 //
