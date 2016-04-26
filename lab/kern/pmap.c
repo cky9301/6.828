@@ -540,15 +540,15 @@ int
 page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
 {
 	// Fill this function in
-  // TODO: chky
-  pte_t *pte, *pgtab;
-  pgtab = pgdir_walk(pgdir, ROUNDDOWN(va, PTSIZE), 1);
-  if (!pgtab)
-    return -E_NO_MEM;
-  pp->pp_ref++;
-  page_remove(pgdir, va);
-  pte = &pgtab[PTX(va)];
-  *pte = page2pa(pp) | PGOFF(perm|PTE_P);
+        // TODO: chky
+        pte_t *pte, *pgtab;
+        pgtab = pgdir_walk(pgdir, ROUNDDOWN(va, PTSIZE), 1);
+        if (!pgtab)
+          return -E_NO_MEM;
+        pp->pp_ref++;
+        page_remove(pgdir, va);
+        pte = &pgtab[PTX(va)];
+        *pte = page2pa(pp) | PGOFF(perm|PTE_P);
 	return 0;
 }
 
@@ -690,30 +690,30 @@ int
 user_mem_check(struct Env *env, const void *va, size_t len, int perm)
 {
 	// LAB 3: Your code here.
-  // TODO: chky
-  uintptr_t vaddr, end;
-  pte_t *pte;
-  vaddr = (uintptr_t)va;
-  end = vaddr + len;
-
-  assert(vaddr + len >= vaddr);
-  perm |= PTE_P;
-
-  if (vaddr >= ULIM
-      || !page_lookup(env->env_pgdir, (void *)vaddr, &pte)
-      || !(*pte & perm)) {
-    user_mem_check_addr = vaddr;
-    return -E_FAULT;
-  }
-
-  for (vaddr = ROUNDUP(vaddr, PGSIZE); vaddr < end; vaddr += PGSIZE) {
-    if (vaddr >= ULIM
-        || !page_lookup(env->env_pgdir, (void *)vaddr, &pte)
-        || !(*pte & perm)) {
-      user_mem_check_addr = vaddr;
-      return -E_FAULT;
-    }
-  }
+        // TODO: chky
+        uintptr_t vaddr, end;
+        pte_t *pte;
+        vaddr = (uintptr_t)va;
+        end = vaddr + len;
+      
+        assert(vaddr + len >= vaddr);
+        perm |= PTE_P;
+      
+        if (vaddr >= ULIM
+            || !page_lookup(env->env_pgdir, (void *)vaddr, &pte)
+            || !(*pte & perm)) {
+          user_mem_check_addr = vaddr;
+          return -E_FAULT;
+        }
+      
+        for (vaddr = ROUNDUP(vaddr, PGSIZE); vaddr < end; vaddr += PGSIZE) {
+          if (vaddr >= ULIM
+              || !page_lookup(env->env_pgdir, (void *)vaddr, &pte)
+              || !(*pte & perm)) {
+            user_mem_check_addr = vaddr;
+            return -E_FAULT;
+          }
+        }
 
 	return 0;
 }

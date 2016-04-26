@@ -25,6 +25,13 @@ pgfault(struct UTrapframe *utf)
 	//   (see <inc/memlayout.h>).
 
 	// LAB 4: Your code here.
+        // TODO: chky
+        if (!(err & FEC_WR)) {
+            panic("non-write fault: %x", addr);
+        }
+        if (!(uvpt[PGNUM((uintptr_t)addr)] & PTE_COW)) {
+            panic("non-cow fault: %x", addr);
+        }
 
 	// Allocate a new page, map it at a temporary location (PFTEMP),
 	// copy the data from the old page to the new page, then move the new
@@ -33,8 +40,23 @@ pgfault(struct UTrapframe *utf)
 	//   You should make three system calls.
 
 	// LAB 4: Your code here.
+        // TODO: chky
+        //envid_t envid = sys_getenvid();
+        envid_t envid = thisenv->env_id;
+        if ((r = sys_page_alloc(envid, (void *)PFTEMP, PTE_W|PTE_U|PTE_P)) < 0) {
+            panic("allocating at PFTEMP in pgfault: %e", r);
+        }
+       
+        memmove((void *)PFTEMP, addr, PGSIZE);
 
-	panic("pgfault not implemented");
+        if ((r = sys_page_map(envid, (void *)PFTEMP, envid, addr, PTE_U|PTE_W|PTE_P)) < 0) {
+            panic("Mapping at %x in pgfault: %e", addr, r);
+        }
+        if ((r = sys_page_unmap(envid, (void *)PFTEMP)) < 0) {
+            panic("Unmapping at %x in pgfault: %e", PFTEMP, r);
+        }
+
+	//panic("pgfault not implemented");
 }
 
 //
@@ -54,8 +76,30 @@ duppage(envid_t envid, unsigned pn)
 	int r;
 
 	// LAB 4: Your code here.
-	panic("duppage not implemented");
-	return 0;
+        // TODO: chky
+        void *addr = (void *)(pn*PGSIZE);
+        int perm;
+        envid_t thisenvid;
+
+        thisenvid = sys_getenvid();
+        assert(thisenvid != envid);
+        
+        perm = PGOFF(uvpt[pn]) & (PTE_SYSCALL);
+        if (uvpt[pn] & (PTE_COW|PTE_W)) {
+            perm |= PTE_COW;
+            perm &= ~PTE_W;
+            if ((r = sys_page_map(thisenvid, addr, thisenvid, addr, perm)) < 0) {
+                panic("duppage->sys_page_map %e", r);
+                return r;
+            }
+        }
+
+        if ((r = sys_page_map(thisenvid, addr, envid, addr, perm)) < 0) {
+            panic("duppage->sys_page_map %e", r);
+        }
+        
+	//panic("duppage not implemented");
+	return r;
 }
 
 //
@@ -78,7 +122,59 @@ envid_t
 fork(void)
 {
 	// LAB 4: Your code here.
-	panic("fork not implemented");
+        // TODO: chky
+        int r;
+        envid_t envid;
+        uint8_t *addr;
+
+        set_pgfault_handler(pgfault);
+        if ((envid = sys_exofork()) < 0) {
+            return envid;
+        }
+
+        if (envid == 0) {
+            // We're the child.
+            thisenv = &envs[ENVX(sys_getenvid())];
+            return 0;
+        }
+
+        // We're the parent.
+        for (addr = (uint8_t *)UTEXT; addr < (uint8_t *)UTOP; addr += PGSIZE) {
+            if ((uintptr_t)addr == UXSTACKTOP - PGSIZE) {
+                if ((r = sys_page_alloc(envid, addr, PTE_W|PTE_U|PTE_P)) < 0) {
+	            panic("fork->sys_page_alloc");
+                    return r;
+                }
+            } else if (!(uvpd[PDX(addr)] & PTE_P) 
+                    || !(uvpt[PGNUM(addr)] & PTE_P)) {
+                continue;
+            } else if (uvpt[PGNUM(addr)] & (PTE_W|PTE_COW)) {
+                if ((r = duppage(envid, PGNUM(addr))) < 0) {
+	            panic("fork->duppage");
+                    return r;
+                }
+            } else if (!(uvpt[PGNUM(addr)] & PTE_COW)) {
+                // other present pages
+                // FIXME: read-only ?
+                int perm = PGOFF(uvpt[PGNUM(addr)]);
+                if ((r = sys_page_map(thisenv->env_id, addr, envid, addr, perm)) < 0) {
+                    panic("fork->sys_page_map at %x: %e", addr, r);
+                }
+            }
+        }
+    
+        if ((r = sys_env_set_pgfault_upcall(envid, thisenv->env_pgfault_upcall)) < 0) {
+            panic("fork->sys_env_set_pgfault_upcall: %e", r);
+            return r;
+        }
+
+        if ((r = sys_env_set_status(envid, ENV_RUNNABLE)) < 0) {
+            panic("fork->sys_env_set_status: %e", r);
+            return r;
+        }
+
+        return 0;
+	//panic("fork not implemented");
 }
 
 // Challenge!

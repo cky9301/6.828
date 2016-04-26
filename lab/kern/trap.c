@@ -72,16 +72,16 @@ trap_init(void)
 	extern struct Segdesc gdt[];
 
 	// LAB 3: Your code here.
-  // TODO: chky
-  int i;
-  extern uint32_t handlers[];
-  extern void handler48();
-  
-  //FIXME: istrap, sel, off, dpl
-  for (i = 0; i <= T_SIMDERR; i++) {
-    SETGATE(idt[i], 0, GD_KT, handlers[i], (i==T_BRKPT)? 3:0);
-  }
-  SETGATE(idt[T_SYSCALL], 0, GD_KT, handler48, 3);
+        // TODO: chky
+        int i;
+        extern uint32_t handlers[];
+        extern void handler48();
+        
+        //FIXME: istrap, sel, off, dpl
+        for (i = 0; i <= T_SIMDERR; i++) {
+          SETGATE(idt[i], 0, GD_KT, handlers[i], (i==T_BRKPT)? 3:0);
+        }
+        SETGATE(idt[T_SYSCALL], 0, GD_KT, handler48, 3);
 
 	// Per-CPU setup 
 	trap_init_percpu();
@@ -186,29 +186,29 @@ trap_dispatch(struct Trapframe *tf)
 {
 	// Handle processor exceptions.
 	// LAB 3: Your code here.
-  // TODO: chky
-  int r;
-  switch (tf->tf_trapno) {
-    case T_PGFLT:
-        page_fault_handler(tf);
-        break;
-    case T_BRKPT:
-        // TODO: lab3 ex6 challenge
-        monitor(tf);
-        break;
-    case T_SYSCALL:
-        r = syscall(tf->tf_regs.reg_eax,    // syscallno
-                    tf->tf_regs.reg_edx,    // a1
-                    tf->tf_regs.reg_ecx,    // a2
-                    tf->tf_regs.reg_ebx,    // a3
-                    tf->tf_regs.reg_edi,    // a4
-                    tf->tf_regs.reg_esi     // a5
-                    );
-        tf->tf_regs.reg_eax = r;
-        return;
-    default:
-        break;
-  }
+        // TODO: chky
+        int r;
+        switch (tf->tf_trapno) {
+          case T_PGFLT:
+              page_fault_handler(tf);
+              break;
+          case T_BRKPT:
+              // TODO: lab3 ex6 challenge
+              monitor(tf);
+              break;
+          case T_SYSCALL:
+              r = syscall(tf->tf_regs.reg_eax,    // syscallno
+                          tf->tf_regs.reg_edx,    // a1
+                          tf->tf_regs.reg_ecx,    // a2
+                          tf->tf_regs.reg_ebx,    // a3
+                          tf->tf_regs.reg_edi,    // a4
+                          tf->tf_regs.reg_esi     // a5
+                          );
+              tf->tf_regs.reg_eax = r;
+              return;
+          default:
+              break;
+        }
 
 	// Handle spurious interrupts
 	// The hardware sometimes raises these because of noise on the
@@ -306,15 +306,15 @@ page_fault_handler(struct Trapframe *tf)
 	// Handle kernel-mode page faults.
 
 	// LAB 3: Your code here.
-  // TODO: chky
-  if ((tf->tf_cs & 3) != 3) {
-    pte_t *pte;
-    if (fault_va >= ULIM 
-        || !page_lookup(curenv->env_pgdir, (void *)fault_va, &pte) 
-        || !(*pte&PTE_U)) {
-      panic("fault in kernel");
-    }
-  }
+        // TODO: chky
+        if ((tf->tf_cs & 3) != 3) {
+          pte_t *pte;
+          if (fault_va >= ULIM 
+              || !page_lookup(curenv->env_pgdir, (void *)fault_va, &pte) 
+              || !(*pte&PTE_U)) {
+            panic("fault in kernel");
+          }
+        }
 
 	// We've already handled kernel-mode exceptions, so if we get here,
 	// the page fault happened in user mode.
@@ -348,6 +348,39 @@ page_fault_handler(struct Trapframe *tf)
 	//   (the 'tf' variable points at 'curenv->env_tf').
 
 	// LAB 4: Your code here.
+        // TODO: chky
+        struct UTrapframe *utf;
+        uint32_t esp;
+        esp = tf->tf_esp;
+
+        if (!(curenv->env_pgfault_upcall)) {
+	    // Destroy the environment that caused the fault.
+	    cprintf("[%08x] user fault va %08x ip %08x\n",
+		    curenv->env_id, fault_va, tf->tf_eip);
+	    print_trapframe(tf);
+	    env_destroy(curenv);
+        }
+        
+        if (tf->tf_esp >= UXSTACKTOP - PGSIZE && tf->tf_esp < UXSTACKTOP) {
+            tf->tf_esp -= 4;
+            tf->tf_esp -= sizeof(struct UTrapframe);
+        } else {
+            tf->tf_esp = UXSTACKTOP - sizeof(struct UTrapframe);
+        }
+
+        user_mem_assert(curenv, (void *)tf->tf_esp, sizeof(struct UTrapframe), PTE_W);
+
+        utf = (struct UTrapframe *)tf->tf_esp;
+        utf->utf_fault_va = fault_va;
+        utf->utf_err = tf->tf_err;
+        utf->utf_regs = tf->tf_regs;
+        utf->utf_eip = tf->tf_eip;
+        utf->utf_eflags = tf->tf_eflags;
+        utf->utf_esp = esp;
+        
+        tf->tf_eip = (uintptr_t)curenv->env_pgfault_upcall;
+
+        env_run(curenv);
 
 	// Destroy the environment that caused the fault.
 	cprintf("[%08x] user fault va %08x ip %08x\n",

@@ -150,6 +150,13 @@ static int
 sys_env_set_pgfault_upcall(envid_t envid, void *func)
 {
 	// LAB 4: Your code here.
+        // TODO: chky
+        int r;
+        struct Env *env;
+        if ((r = envid2env(envid, &env, 1)) < 0)
+            return r;
+        env->env_pgfault_upcall = func;
+        return 0;
 	panic("sys_env_set_pgfault_upcall not implemented");
 }
 
@@ -187,7 +194,7 @@ sys_page_alloc(envid_t envid, void *va, int perm)
 
         if ((uintptr_t)va > UTOP || (uintptr_t)va%PGSIZE)
             return -E_INVAL;
-        if (!(perm & (PTE_U | PTE_P)) || (perm & (~PTE_SYSCALL)))
+        if (!(perm & PTE_U) || !(perm & PTE_P) || (perm & (~PTE_SYSCALL)))
             return -E_INVAL;
 
         if ((r = envid2env(envid, &env, 1)) < 0) {
@@ -221,7 +228,8 @@ sys_page_alloc(envid_t envid, void *va, int perm)
 //	-E_INVAL if (perm & PTE_W), but srcva is read-only in srcenvid's
 //		address space.
 //	-E_NO_MEM if there's no memory to allocate any necessary page tables.
-static int
+//static int
+int
 sys_page_map(envid_t srcenvid, void *srcva,
 	     envid_t dstenvid, void *dstva, int perm)
 {
@@ -255,7 +263,8 @@ sys_page_map(envid_t srcenvid, void *srcva,
 
         if (!(*srcpte & PTE_W) && (perm & PTE_W))
             return -E_INVAL;
-        if (!(perm & (PTE_U | PTE_P)) || (perm & (~PTE_SYSCALL)))
+        
+        if (!(perm & PTE_U) || !(perm & PTE_P) || (perm & (~PTE_SYSCALL)))
             return -E_INVAL;
 
         if ((r = page_insert(dstenv->env_pgdir, pp, dstva, perm)) < 0)
@@ -392,6 +401,9 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
                 break;
             case SYS_env_set_status:
                 r = sys_env_set_status(a1, a2);
+                break;
+            case SYS_env_set_pgfault_upcall:
+                r = sys_env_set_pgfault_upcall(a1, (void *)a2);
                 break;
             case SYS_page_alloc:
                 r = sys_page_alloc(a1, (void *)a2, a3);
