@@ -69,6 +69,7 @@ _pgfault_upcall:
         movl 48(%esp), %eax         // save trap-time esp in eax
         movl 40(%esp), %ebx         // save trap-time eip in ebx
         subl $4, %eax
+        movl %eax, 48(%esp)         // update trap-time esp
         movl %ebx, (%eax)           // push trap-time eip to trap-time stack
 
 	// Restore the trap-time registers.  After you do this, you
@@ -88,7 +89,6 @@ _pgfault_upcall:
 	// Switch back to the adjusted trap-time stack.
 	// LAB 4: Your code here.
         movl (%esp), %esp
-        subl $4, %esp               // point to newly pushed eip
 
 	// Return to re-execute the instruction that faulted.
 	// LAB 4: Your code here.
