@@ -41,8 +41,8 @@ pgfault(struct UTrapframe *utf)
 
 	// LAB 4: Your code here.
         // TODO: chky
-        //envid_t envid = sys_getenvid();
-        envid_t envid = thisenv->env_id;
+        envid_t envid = sys_getenvid(); // thisenv has not been set yet!
+        addr = ROUNDDOWN(addr, PGSIZE);
         if ((r = sys_page_alloc(envid, (void *)PFTEMP, PTE_W|PTE_U|PTE_P)) < 0) {
             panic("allocating at PFTEMP in pgfault: %e", r);
         }
@@ -52,9 +52,9 @@ pgfault(struct UTrapframe *utf)
         if ((r = sys_page_map(envid, (void *)PFTEMP, envid, addr, PTE_U|PTE_W|PTE_P)) < 0) {
             panic("Mapping at %x in pgfault: %e", addr, r);
         }
-        if ((r = sys_page_unmap(envid, (void *)PFTEMP)) < 0) {
-            panic("Unmapping at %x in pgfault: %e", PFTEMP, r);
-        }
+        //if ((r = sys_page_unmap(envid, (void *)PFTEMP)) < 0) {
+        //    panic("Unmapping at %x in pgfault: %e", PFTEMP, r);
+        //}
 
 	//panic("pgfault not implemented");
 }
@@ -85,16 +85,17 @@ duppage(envid_t envid, unsigned pn)
         assert(thisenvid != envid);
         
         perm = PGOFF(uvpt[pn]) & (PTE_SYSCALL);
-        if (uvpt[pn] & (PTE_COW|PTE_W)) {
-            perm |= PTE_COW;
-            perm &= ~PTE_W;
-            if ((r = sys_page_map(thisenvid, addr, thisenvid, addr, perm)) < 0) {
-                panic("duppage->sys_page_map %e", r);
-                return r;
-            }
-        }
+        perm |= PTE_COW;
+        perm &= ~PTE_W;
 
         if ((r = sys_page_map(thisenvid, addr, envid, addr, perm)) < 0) {
+            panic("duppage->sys_page_map %e", r);
+        }
+        
+        // The code below must be in the end of duppage()!!!
+        // Because duppage() run in user env with user stack
+        // Which may trigger page fault
+        if ((r = sys_page_map(thisenvid, addr, thisenvid, addr, perm)) < 0) {
             panic("duppage->sys_page_map %e", r);
         }
         
@@ -131,7 +132,6 @@ fork(void)
         if ((envid = sys_exofork()) < 0) {
             return envid;
         }
-
         if (envid == 0) {
             // We're the child.
             thisenv = &envs[ENVX(sys_getenvid())];
@@ -153,7 +153,7 @@ fork(void)
 	            panic("fork->duppage");
                     return r;
                 }
-            } else if (!(uvpt[PGNUM(addr)] & PTE_COW)) {
+            } else /*if (!(uvpt[PGNUM(addr)] & PTE_COW))*/ {
                 // other present pages
                 // FIXME: read-only ?
                 int perm = PGOFF(uvpt[PGNUM(addr)]);
@@ -173,7 +173,7 @@ fork(void)
             return r;
         }
 
-        return 0;
+        return envid;
 	//panic("fork not implemented");
 }
 
