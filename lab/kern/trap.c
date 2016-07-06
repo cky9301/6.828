@@ -352,7 +352,7 @@ page_fault_handler(struct Trapframe *tf)
         struct UTrapframe *utf;
         uint32_t esp;
         esp = tf->tf_esp;
-
+        
         if (!(curenv->env_pgfault_upcall)) {
 	    // Destroy the environment that caused the fault.
 	    cprintf("[%08x] user fault va %08x ip %08x\n",

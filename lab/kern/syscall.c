@@ -22,18 +22,18 @@ sys_cputs(const char *s, size_t len)
 	// Destroy the environment if not.
 
 	// LAB 3: Your code here.
-  // TODO: chky
-  pte_t *pte;
-  uintptr_t beg = ROUNDDOWN((uintptr_t)s, PGSIZE);
-  uintptr_t end = ROUNDUP((uintptr_t)s + len, PGSIZE);
-  if ((uintptr_t)s > (uintptr_t)s + len)
-    env_destroy(curenv);
- 
-  for (; beg < end; beg += PGSIZE) {
-    if ((page_lookup(curenv->env_pgdir, (char *)beg, &pte) == NULL) || !(*pte & PTE_U)) {
-      env_destroy(curenv);
-    }
-  } 
+        // TODO: chky
+        pte_t *pte;
+        uintptr_t beg = ROUNDDOWN((uintptr_t)s, PGSIZE);
+        uintptr_t end = ROUNDUP((uintptr_t)s + len, PGSIZE);
+        if ((uintptr_t)s > (uintptr_t)s + len)
+          env_destroy(curenv);
+        
+        for (; beg < end; beg += PGSIZE) {
+          if ((page_lookup(curenv->env_pgdir, (char *)beg, &pte) == NULL) || !(*pte & PTE_U)) {
+            env_destroy(curenv);
+          }
+        } 
 
 	// Print the string supplied by the user.
 	cprintf("%.*s", len, s);

@@ -42,7 +42,11 @@ pgfault(struct UTrapframe *utf)
 	// LAB 4: Your code here.
         // TODO: chky
         //envid_t envid = sys_getenvid();
-        envid_t envid = thisenv->env_id;
+        //cprintf("pgfault at %x\n", addr);
+        addr = ROUNDDOWN(addr, PGSIZE);
+        envid_t envid = sys_getenvid();
+        cprintf("env %x enter pgfault at %x\n", envid, addr);
+        //cprintf("envid %d\n", envid);
         if ((r = sys_page_alloc(envid, (void *)PFTEMP, PTE_W|PTE_U|PTE_P)) < 0) {
             panic("allocating at PFTEMP in pgfault: %e", r);
         }
@@ -52,9 +56,11 @@ pgfault(struct UTrapframe *utf)
         if ((r = sys_page_map(envid, (void *)PFTEMP, envid, addr, PTE_U|PTE_W|PTE_P)) < 0) {
             panic("Mapping at %x in pgfault: %e", addr, r);
         }
-        if ((r = sys_page_unmap(envid, (void *)PFTEMP)) < 0) {
-            panic("Unmapping at %x in pgfault: %e", PFTEMP, r);
-        }
+        //if ((r = sys_page_unmap(envid, (void *)PFTEMP)) < 0) {
+        //    panic("Unmapping at %x in pgfault: %e", PFTEMP, r);
+        //}
+        
+        cprintf("env %x leave pgfault at %x\n", envid, addr);
 
 	//panic("pgfault not implemented");
 }
@@ -132,6 +138,7 @@ fork(void)
             return envid;
         }
 
+        //cprintf("envid after fork %d\n", envid);
         if (envid == 0) {
             // We're the child.
             thisenv = &envs[ENVX(sys_getenvid())];
@@ -173,7 +180,7 @@ fork(void)
             return r;
         }
 
-        return 0;
+        return envid;
 	//panic("fork not implemented");
 }
 
