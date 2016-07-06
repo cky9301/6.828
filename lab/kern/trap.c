@@ -77,11 +77,18 @@ trap_init(void)
         extern uint32_t handlers[];
         extern void handler48();
         
+        extern uint32_t irq_handlers[];
+        
         //FIXME: istrap, sel, off, dpl
         for (i = 0; i <= T_SIMDERR; i++) {
           SETGATE(idt[i], 0, GD_KT, handlers[i], (i==T_BRKPT)? 3:0);
         }
         SETGATE(idt[T_SYSCALL], 0, GD_KT, handler48, 3);
+        
+        // LAB 4: chky, set IRQ handlers
+        for (i = 0; i <= 15; i++) {
+          SETGATE(idt[IRQ_OFFSET+i], 0, GD_KT, irq_handlers[i], 3);
+        }
 
 	// Per-CPU setup 
 	trap_init_percpu();
