@@ -72,6 +72,12 @@ TRAPHANDLER_NOEC(handler17, T_ALIGN)
 TRAPHANDLER_NOEC(handler18, T_MCHK)
 TRAPHANDLER_NOEC(handler19, T_SIMDERR)
 
+TRAPHANDLER_NOEC(irq_handler0, IRQ_OFFSET+IRQ_TIMER)
+TRAPHANDLER_NOEC(irq_handler1, IRQ_OFFSET+IRQ_KBD)
+TRAPHANDLER_NOEC(irq_handler4, IRQ_OFFSET+IRQ_SERIAL)
+TRAPHANDLER_NOEC(irq_handler7, IRQ_OFFSET+IRQ_SPURIOUS)
+TRAPHANDLER_NOEC(irq_handler14, IRQ_OFFSET+IRQ_IDE)
+
 TRAPHANDLER_NOEC(handler48, T_SYSCALL)
 
 
@@ -91,6 +97,19 @@ _alltraps:
   call trap /* TODO: does not return? */
   
 .data
+
+.global irq_handlers
+irq_handlers:
+  .long irq_handler0
+  .long irq_handler1
+  .long 0, 0
+  .long irq_handler4
+  .long 0, 0, 0
+  .long irq_handler7
+  .long 0, 0, 0, 0, 0, 0
+  .long irq_handler14
+  .long 0
+
 .globl handlers
 handlers: 
   .long handler0
