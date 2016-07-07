@@ -45,10 +45,12 @@ sched_yield(void)
         }
 
         if (i != cur) {
+            cprintf("env %x yield to env %x\n", cur, i);
             env_run(&envs[i]);
         }
 
         if (envs[cur].env_status == ENV_RUNNING) {
+            cprintf("env %x resume\n", cur);
             env_run(&envs[cur]);
         }
 

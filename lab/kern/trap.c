@@ -229,6 +229,14 @@ trap_dispatch(struct Trapframe *tf)
 	// Handle clock interrupts. Don't forget to acknowledge the
 	// interrupt using lapic_eoi() before calling the scheduler!
 	// LAB 4: Your code here.
+        // TODO: chky
+	if (tf->tf_trapno == IRQ_OFFSET + IRQ_TIMER) {
+                cprintf("TIMER!\n");
+	        lapic_eoi();
+                sched_yield();
+                return;
+	}
+        // chky end
 
 	// Unexpected trap: The user process or the kernel has a bug.
 	print_trapframe(tf);
@@ -385,6 +393,7 @@ page_fault_handler(struct Trapframe *tf)
         utf->utf_eflags = tf->tf_eflags;
         utf->utf_esp = esp;
         
+        tf->tf_eflags &= ~FL_IF;
         tf->tf_eip = (uintptr_t)curenv->env_pgfault_upcall;
 
         env_run(curenv);

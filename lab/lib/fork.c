@@ -26,13 +26,13 @@ pgfault(struct UTrapframe *utf)
 
 	// LAB 4: Your code here.
         // TODO: chky
+        cprintf("fault at %x\n", addr);
         if (!(err & FEC_WR)) {
             panic("non-write fault: %x", addr);
         }
         if (!(uvpt[PGNUM((uintptr_t)addr)] & PTE_COW)) {
             panic("non-cow fault: %x", addr);
         }
-
 	// Allocate a new page, map it at a temporary location (PFTEMP),
 	// copy the data from the old page to the new page, then move the new
 	// page to the old page's address.
@@ -55,6 +55,7 @@ pgfault(struct UTrapframe *utf)
         //if ((r = sys_page_unmap(envid, (void *)PFTEMP)) < 0) {
         //    panic("Unmapping at %x in pgfault: %e", PFTEMP, r);
         //}
+        cprintf("leave fault at %x\n", addr);
 
 	//panic("pgfault not implemented");
 }
@@ -89,6 +90,7 @@ duppage(envid_t envid, unsigned pn)
         perm &= ~PTE_W;
 
         if ((r = sys_page_map(thisenvid, addr, envid, addr, perm)) < 0) {
+            cprintf("thisenv %x, env %x\n", thisenvid, envid);
             panic("duppage->sys_page_map %e", r);
         }
         
