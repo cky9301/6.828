@@ -568,15 +568,16 @@ page_lookup(pde_t *pgdir, void *va, pte_t **pte_store)
 {
 	// Fill this function in
 	// TODO: chky
-  physaddr_t pa;
-  pte_t *pgtab;
-  pgtab = pgdir_walk(pgdir, va, 0);
-  if (!pgtab || !(*pgtab & PTE_P))
-    return NULL;
-  pa = PTE_ADDR(*pgtab);
-  if (pte_store)
-    *pte_store = pgtab;
-  return pa2page(pa);
+        assert(pgdir);
+        physaddr_t pa;
+        pte_t *pgtab;
+        pgtab = pgdir_walk(pgdir, va, 0);
+        if (!pgtab || !(*pgtab & PTE_P))
+          return NULL;
+        pa = PTE_ADDR(*pgtab);
+        if (pte_store)
+          *pte_store = pgtab;
+        return pa2page(pa);
 }
 
 //

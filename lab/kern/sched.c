@@ -45,12 +45,12 @@ sched_yield(void)
         }
 
         if (i != cur) {
-            cprintf("env %x yield to env %x\n", cur, i);
+            //cprintf("cpu %d env %x yield to env %x\n", thiscpu->cpu_id, cur, i);
             env_run(&envs[i]);
         }
 
-        if (envs[cur].env_status == ENV_RUNNING) {
-            cprintf("env %x resume\n", cur);
+        if (curenv && envs[cur].env_status == ENV_RUNNING) {
+            //cprintf("cpu %d env %x resume\n", thiscpu->cpu_id, cur);
             env_run(&envs[cur]);
         }
 

@@ -26,7 +26,6 @@ pgfault(struct UTrapframe *utf)
 
 	// LAB 4: Your code here.
         // TODO: chky
-        cprintf("fault at %x\n", addr);
         if (!(err & FEC_WR)) {
             panic("non-write fault: %x", addr);
         }
@@ -55,7 +54,6 @@ pgfault(struct UTrapframe *utf)
         //if ((r = sys_page_unmap(envid, (void *)PFTEMP)) < 0) {
         //    panic("Unmapping at %x in pgfault: %e", PFTEMP, r);
         //}
-        cprintf("leave fault at %x\n", addr);
 
 	//panic("pgfault not implemented");
 }
