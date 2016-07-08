@@ -346,7 +346,44 @@ static int
 sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 {
 	// LAB 4: Your code here.
-	panic("sys_ipc_try_send not implemented");
+        // TODO: chky
+        int r;
+        struct Env *env;
+        struct PageInfo *pp;
+        pte_t *pte;
+        if ((r = envid2env(envid, &env, 0)) < 0) {
+            return r;
+        }
+        if (!env->env_ipc_recving) {
+            return -E_IPC_NOT_RECV;
+        }
+        if ((uintptr_t)srcva < UTOP && (uintptr_t)env->env_ipc_dstva < UTOP) {
+            if ((uintptr_t)srcva%PGSIZE != 0) {
+                return -E_INVAL;
+            }
+            if (!(pp = page_lookup(curenv->env_pgdir, srcva, &pte))) {
+                return -E_INVAL;
+            }
+            if (!(perm & PTE_U) || !(perm & PTE_P) || (perm & (~PTE_SYSCALL))) {
+                return -E_INVAL;
+            }
+            if ((perm & PTE_W) && !(*pte & PTE_W)) {
+                return -E_INVAL;
+            }
+            if ((r = page_insert(env->env_pgdir, pp, env->env_ipc_dstva, perm)) < 0) {
+                return r;
+            }
+            env->env_ipc_perm = perm;
+        }
+
+        env->env_ipc_recving = 0;
+        env->env_ipc_value = value;
+        env->env_ipc_from = curenv->env_id;
+        env->env_status = ENV_RUNNABLE;
+
+        return 0;
+        // chky end
+	// panic("sys_ipc_try_send not implemented");
 }
 
 // Block until a value is ready.  Record that you want to receive
@@ -364,7 +401,18 @@ static int
 sys_ipc_recv(void *dstva)
 {
 	// LAB 4: Your code here.
-	panic("sys_ipc_recv not implemented");
+        // TODO: chky
+        if ((uintptr_t)dstva < UTOP && (uintptr_t)dstva%PGSIZE != 0)
+            return -E_INVAL;
+        curenv->env_tf.tf_regs.reg_eax = 0;
+        curenv->env_ipc_recving = 1;
+        curenv->env_ipc_dstva = dstva;
+        curenv->env_status = ENV_NOT_RUNNABLE;
+        sched_yield();
+
+	panic("sys_ipc_recv should not reach here!");
+        // chky end
+	// panic("sys_ipc_recv not implemented");
 	return 0;
 }
 
@@ -413,6 +461,12 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
                 break;
             case SYS_page_unmap:
                 r = sys_page_unmap(a1, (void *)a2);
+                break;
+            case SYS_ipc_try_send:
+                r = sys_ipc_try_send(a1, a2, (void *)a3, a4);
+                break;
+            case SYS_ipc_recv:
+                r = sys_ipc_recv((void *)a1);
                 break;
             default:
                 r = -E_INVAL;
