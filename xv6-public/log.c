@@ -43,6 +43,7 @@ struct log {
   int committing;  // in commit(), please wait.
   int dev;
   struct logheader lh;
+  struct buf *data[LOGSIZE]; // TODO: chky hw11
 };
 struct log log;
 
@@ -71,11 +72,13 @@ install_trans(void)
   int tail;
 
   for (tail = 0; tail < log.lh.n; tail++) {
-    struct buf *lbuf = bread(log.dev, log.start+tail+1); // read log block
+	// TODO: chky hw11
+	// struct buf *lbuf = bread(log.dev, log.start+tail+1); // read log block
+	struct buf *lbuf = log.data[tail]; // logged data
     struct buf *dbuf = bread(log.dev, log.lh.block[tail]); // read dst
     memmove(dbuf->data, lbuf->data, BSIZE);  // copy block to dst
     bwrite(dbuf);  // write dst to disk
-    brelse(lbuf); 
+    // brelse(lbuf); 
     brelse(dbuf);
   }
 }
@@ -223,6 +226,7 @@ log_write(struct buf *b)
       break;
   }
   log.lh.block[i] = b->blockno;
+  log.data[i] = b; // TODO: chky hw11
   if (i == log.lh.n)
     log.lh.n++;
   b->flags |= B_DIRTY; // prevent eviction
