@@ -84,11 +84,20 @@ duppage(envid_t envid, unsigned pn)
         assert(thisenvid != envid);
         
         perm = PGOFF(uvpt[pn]) & (PTE_SYSCALL);
+
+	// LAB 5: shared page
+	// TODO: chky
+	if (perm & PTE_SHARE) {
+        	if ((r = sys_page_map(thisenvid, addr, envid, addr, perm)) < 0) {
+            		panic("duppage->sys_page_map %e", r);
+        	}
+		return r;
+	}
+
         perm |= PTE_COW;
         perm &= ~PTE_W;
 
         if ((r = sys_page_map(thisenvid, addr, envid, addr, perm)) < 0) {
-            cprintf("thisenv %x, env %x\n", thisenvid, envid);
             panic("duppage->sys_page_map %e", r);
         }
         
@@ -148,7 +157,7 @@ fork(void)
             } else if (!(uvpd[PDX(addr)] & PTE_P) 
                     || !(uvpt[PGNUM(addr)] & PTE_P)) {
                 continue;
-            } else if (uvpt[PGNUM(addr)] & (PTE_W|PTE_COW)) {
+            } else if (uvpt[PGNUM(addr)] & (PTE_W|PTE_COW|PTE_SHARE)) {
                 if ((r = duppage(envid, PGNUM(addr))) < 0) {
 	            panic("fork->duppage");
                     return r;

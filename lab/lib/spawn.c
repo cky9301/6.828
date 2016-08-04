@@ -301,6 +301,19 @@ static int
 copy_shared_pages(envid_t child)
 {
 	// LAB 5: Your code here.
+	// TODO: chky
+        int r;
+	uint8_t *addr;
+        
+	for (addr = (uint8_t *)UTEXT; addr < (uint8_t *)UTOP; addr += PGSIZE) {
+            if (uvpt[PGNUM(addr)] & PTE_SHARE) {
+                int perm = uvpt[PGNUM(addr)] & PTE_SYSCALL;
+                if ((r = sys_page_map(thisenv->env_id, addr, child, addr, perm)) < 0) {
+                    panic("copy_shared_pages->sys_page_map at %x: %e", addr, r);
+                }
+            }
+        }
+	
 	return 0;
 }
 
