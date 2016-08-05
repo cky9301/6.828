@@ -26,7 +26,7 @@ pgfault(struct UTrapframe *utf)
 
 	// LAB 4: Your code here.
         // TODO: chky
-        if (!(err & FEC_WR)) {
+	if (!(err & FEC_WR)) {
             panic("non-write fault: %x", addr);
         }
         if (!(uvpt[PGNUM((uintptr_t)addr)] & PTE_COW)) {
@@ -165,7 +165,7 @@ fork(void)
             } else /*if (!(uvpt[PGNUM(addr)] & PTE_COW))*/ {
                 // other present pages
                 // FIXME: read-only ?
-                int perm = PGOFF(uvpt[PGNUM(addr)]);
+                int perm = uvpt[PGNUM(addr)] & PTE_SYSCALL;
                 if ((r = sys_page_map(thisenv->env_id, addr, envid, addr, perm)) < 0) {
                     panic("fork->sys_page_map at %x: %e", addr, r);
                 }
