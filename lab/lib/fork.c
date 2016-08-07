@@ -26,7 +26,7 @@ pgfault(struct UTrapframe *utf)
 
 	// LAB 4: Your code here.
         // TODO: chky
-	if (!(err & FEC_WR)) {
+        if (!(err & FEC_WR)) {
             panic("non-write fault: %x", addr);
         }
         if (!(uvpt[PGNUM((uintptr_t)addr)] & PTE_COW)) {
@@ -84,20 +84,11 @@ duppage(envid_t envid, unsigned pn)
         assert(thisenvid != envid);
         
         perm = PGOFF(uvpt[pn]) & (PTE_SYSCALL);
-
-	// LAB 5: shared page
-	// TODO: chky
-	if (perm & PTE_SHARE) {
-        	if ((r = sys_page_map(thisenvid, addr, envid, addr, perm)) < 0) {
-            		panic("duppage->sys_page_map %e", r);
-        	}
-		return r;
-	}
-
         perm |= PTE_COW;
         perm &= ~PTE_W;
 
         if ((r = sys_page_map(thisenvid, addr, envid, addr, perm)) < 0) {
+            cprintf("thisenv %x, env %x\n", thisenvid, envid);
             panic("duppage->sys_page_map %e", r);
         }
         
@@ -157,7 +148,7 @@ fork(void)
             } else if (!(uvpd[PDX(addr)] & PTE_P) 
                     || !(uvpt[PGNUM(addr)] & PTE_P)) {
                 continue;
-            } else if (uvpt[PGNUM(addr)] & (PTE_W|PTE_COW|PTE_SHARE)) {
+            } else if (uvpt[PGNUM(addr)] & (PTE_W|PTE_COW)) {
                 if ((r = duppage(envid, PGNUM(addr))) < 0) {
 	            panic("fork->duppage");
                     return r;
@@ -165,7 +156,7 @@ fork(void)
             } else /*if (!(uvpt[PGNUM(addr)] & PTE_COW))*/ {
                 // other present pages
                 // FIXME: read-only ?
-                int perm = uvpt[PGNUM(addr)] & PTE_SYSCALL;
+                int perm = PGOFF(uvpt[PGNUM(addr)]);
                 if ((r = sys_page_map(thisenv->env_id, addr, envid, addr, perm)) < 0) {
                     panic("fork->sys_page_map at %x: %e", addr, r);
                 }
