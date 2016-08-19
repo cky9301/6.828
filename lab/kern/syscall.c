@@ -443,7 +443,13 @@ static int
 sys_time_msec(void)
 {
 	// LAB 6: Your code here.
-	panic("sys_time_msec not implemented");
+	// TODO: chky
+	int r = 0;
+
+	r = time_msec();
+	return r;
+	// chky end
+	// panic("sys_time_msec not implemented");
 }
 
 // Dispatches to the correct kernel function, passing the arguments.
@@ -500,6 +506,9 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
                 break;
             case SYS_ipc_recv:
                 r = sys_ipc_recv((void *)a1);
+                break;
+            case SYS_time_msec:
+                r = sys_time_msec();
                 break;
             default:
                 r = -E_INVAL;
